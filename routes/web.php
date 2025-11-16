@@ -10,7 +10,6 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Staff\DashboardController as StaffDashboardController;
-use App\Http\Controllers\Student\DashboardController as StudentDashboardController;
 
 // Redirect root to login or dashboard depending on auth
 Route::get('/', function () {
@@ -41,6 +40,10 @@ Route::get('/locations/{location}', [LocationController::class, 'show'])->whereN
 Route::get('/categories', [TreeCategoryController::class, 'index'])->name('categories.index');
 Route::get('/categories/{category}', [TreeCategoryController::class, 'show'])->whereNumber('category')->name('categories.show');
 
+// About page (site introduction) - used by sidebar "Giới Thiệu"
+Route::get('/about', function () {
+    return view('pages.about');
+})->name('about');
 // ADMIN routes
 Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class . ':admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
@@ -78,13 +81,33 @@ Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class . ':staff'
     Route::resource('locations', LocationController::class)->only(['index','show']);
 });
 
-// STUDENT / GUEST routes
-Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class . ':student'])->prefix('student')->name('student.')->group(function () {
-    Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
-    Route::get('trees', [TreeController::class, 'index'])->name('trees.index');
-    Route::get('trees/{tree}', [TreeController::class, 'show'])->name('trees.show');
-    Route::get('locations', [LocationController::class, 'index'])->name('locations.index');
-    Route::get('locations/{location}', [LocationController::class, 'show'])->name('locations.show');
+// Route cho trang "Cây được phân công" của staff
+if (!\Illuminate\Support\Facades\Route::has('staff.assigned_trees')) {
+    Route::middleware(['web','auth'])->group(function(){
+        Route::get('staff/assigned-trees', [StaffDashboardController::class, 'assignedTrees'])
+            ->name('staff.assigned_trees');
+    });
+}
+
+// staff assigned trees update endpoint (API for staff actions)
+Route::middleware(['web','auth'])->group(function(){
+    Route::post('staff/trees/{id}/update-status', [StaffDashboardController::class, 'updateStatus'])
+        ->name('staff.trees.update_status');
+});
+
+// NOTE: safe user route + compatibility redirect for old student path
+Route::middleware(['web','auth'])->group(function () {
+    if (!Route::has('user.dashboard')) {
+        Route::get('user/dashboard', function () {
+            return view('user.dashboard');
+        })->name('user.dashboard');
+    }
+
+    if (!Route::has('student.dashboard')) {
+        Route::get('student/dashboard', function () {
+            return redirect()->route('user.dashboard');
+        })->name('student.dashboard');
+    }
 });
 
 // Fallback for undefined routes

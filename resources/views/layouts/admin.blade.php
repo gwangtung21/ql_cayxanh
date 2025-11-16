@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title','Admin Panel') - QL Cây Xanh</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
         :root{
             --green-1:#e8fbef;
@@ -62,9 +64,17 @@
             .sidebar .nav-link span{display:none}
             .admin-main{padding:16px}
         }
+        /* tree icon styling */
+        .tree-icon { color: var(--accent); font-size:1.05rem; vertical-align:middle; margin-right:8px; }
     </style>
+    {{-- CSRF token for JS fetch --}}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body>
+<?php
+    // import facade so IDEs won't mark Route::has(...) as undefined in this Blade
+    use Illuminate\Support\Facades\Route;
+?>
 <div class="admin-shell">
     <!-- staff sidebar -->
     <aside class="sidebar">
@@ -72,8 +82,7 @@
             <div class="d-flex align-items-center">
                 <div class="me-2" style="width:44px;height:44px;border-radius:8px;background:#e6f9f0;display:flex;align-items:center;justify-content:center;"><i class="bi bi-tree-fill text-success"></i></div>
                 <div>
-                    <div class="fw-bold">Hệ Thống Quản Lý Cây Xanh</div>
-                    <small class="text-muted">Quản trị</small>
+                    <div class="fw-bold">Hệ Thống Quản Lý Cây Xanh</div>                  
                 </div>
             </div>
         </div>
@@ -91,9 +100,65 @@
 
         <nav class="p-3">
             <ul class="nav flex-column">
-                <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('admin.dashboard') }}"><i class="bi bi-grid-1x2 me-2"></i> Tổng Quan</a></li>
-                <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('admin.trees.index') }}"><i class="bi bi-tree me-2"></i> Quản Lý Cây</a></li>
-                <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('admin.users.index') }}"><i class="bi bi-people me-2"></i> Quản Lý User</a></li>
+                {{-- Tổng Quan: staff/admin/user --}}
+                @if(isset($user) && $user->role === 'staff')
+                    @if(Route::has('staff.dashboard'))
+                        <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('staff.dashboard') }}"><i class="bi bi-grid-1x2 me-2"></i> Trang Chủ</a></li>
+                    @elseif(Route::has('admin.dashboard'))
+                        <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('admin.dashboard') }}"><i class="bi bi-grid-1x2 me-2"></i> Trang Chủ</a></li>
+                    @else
+                        <li class="nav-item mb-2"><a id="navOverview" class="nav-link text-dark" href="javascript:void(0)"><i class="bi bi-grid-1x2 me-2"></i> Trang Chủ</a></li>
+                    @endif
+                @elseif(isset($user) && $user->role === 'user')
+                    {{-- User: link tới user.dashboard nếu có, fallback sang generic dashboard --}}
+                    @if(Route::has('user.dashboard'))
+                        <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('user.dashboard') }}"><i class="bi bi-grid-1x2 me-2"></i> Trang Chủ</a></li>
+                    @elseif(Route::has('dashboard'))
+                        <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('dashboard') }}"><i class="bi bi-grid-1x2 me-2"></i> Trang Chủ</a></li>
+                    @else
+                        <li class="nav-item mb-2"><a id="navOverview" class="nav-link text-dark" href="javascript:void(0)"><i class="bi bi-grid-1x2 me-2"></i> Trang Chủ</a></li>
+                    @endif
+                @else
+                    @if(Route::has('admin.dashboard'))
+                        <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('admin.dashboard') }}"><i class="bi bi-grid-1x2 me-2"></i> Trang Chủ</a></li>
+                    @endif
+                @endif
+
+                @if(isset($user) && $user->role === 'staff')
+                    {{-- Staff: chỉ hiển thị Cây được phân công --}}
+                    @if (Route::has('staff.assigned_trees'))
+                        <li class="nav-item mb-2"><a id="navAssigned" class="nav-link text-dark" href="{{ route('staff.assigned_trees') }}"><i class="bi bi-list-task me-2"></i> Cây được phân công</a></li>
+                    @elseif (Route::has('staff.dashboard'))
+                        <li class="nav-item mb-2"><a id="navAssigned" class="nav-link text-dark" href="{{ route('staff.dashboard') }}"><i class="bi bi-list-task me-2"></i> Cây được phân công</a></li>
+                    @else
+                        <li class="nav-item mb-2"><a id="navAssigned" class="nav-link text-dark" href="javascript:void(0)"><i class="bi bi-list-task me-2"></i> Cây được phân công</a></li>
+                    @endif
+                @else
+                    {{-- Admin / other: show Cây Xanh and Giới Thiệu --}}
+                    @if(isset($user) && $user->role === 'admin')
+                        @if (Route::has('admin.trees.index'))
+                            <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('admin.trees.index') }}"><i class="bi bi-tree me-2"></i> Cây Xanh</a></li>
+                        @endif
+                        @if (Route::has('admin.users.index'))
+                            <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('admin.users.index') }}"><i class="bi bi-people me-2"></i> Quản Lý User</a></li>
+                        @endif
+                    @else
+                        @if (Route::has('trees.index'))
+                            <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('trees.index') }}"><i class="bi bi-tree me-2"></i> Cây Xanh</a></li>
+                        @elseif (Route::has('admin.trees.index'))
+                            <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('admin.trees.index') }}"><i class="bi bi-tree me-2"></i> Cây Xanh</a></li>
+                        @else
+                            <li class="nav-item mb-2"><a class="nav-link text-dark" href="javascript:void(0)"><i class="bi bi-tree me-2"></i> Cây Xanh</a></li>
+                        @endif
+                    @endif
+                    @if (Route::has('about'))
+                        <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('about') }}"><i class="bi bi-info-circle me-2"></i> Giới Thiệu</a></li>
+                    @elseif (Route::has('pages.about'))
+                        <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('pages.about') }}"><i class="bi bi-info-circle me-2"></i> Giới Thiệu</a></li>
+                    @else
+                        <li class="nav-item mb-2"><a class="nav-link text-dark" href="javascript:void(0)"><i class="bi bi-info-circle me-2"></i> Giới Thiệu</a></li>
+                    @endif
+                @endif
             </ul>
         </nav>
     </aside>

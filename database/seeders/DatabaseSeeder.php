@@ -22,6 +22,8 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             TreeCategorySeeder::class,
+            LocationSeeder::class,
+            TreeSeeder::class,
             // ... other seeders
         ]);
     }

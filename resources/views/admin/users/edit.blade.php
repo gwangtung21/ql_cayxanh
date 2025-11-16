@@ -12,7 +12,7 @@
         </div>
         <div class="mb-3">
             <label class="form-label">Email</label>
-            <input name="email" class="form-control" value="{{ old('email', $user->email) }}" required>
+            <input id="u_email" type="email" name="email" class="form-control" value="{{ old('email', $user->email) }}" required>
         </div>
         <div class="mb-3">
             <label class="form-label">Mật khẩu (để trống nếu không đổi)</label>
@@ -27,9 +27,29 @@
             <select name="role" class="form-select">
                 <option value="admin" {{ $user->role=='admin' ? 'selected' : '' }}>Admin</option>
                 <option value="staff" {{ $user->role=='staff' ? 'selected' : '' }}>Staff</option>
-                <option value="student" {{ $user->role=='student' ? 'selected' : '' }}>Student</option>
+                <option value="user" {{ $user->role=='user' ? 'selected' : '' }}>User</option>
             </select>
         </div>
         <button class="btn btn-primary">Lưu thay đổi</button>
     </form>
+    <!-- Client-side email validation messages -->
+    <script>
+        (function(){
+            var form = document.querySelector("form[action='{{ route('admin.users.update', $user) }}']");
+            var email = document.getElementById('u_email');
+            if (email) {
+                email.addEventListener('input', function(){ email.setCustomValidity(''); });
+                email.addEventListener('invalid', function(){
+                    if (email.validity.valueMissing) email.setCustomValidity('Vui lòng nhập email');
+                    else email.setCustomValidity('Email không đúng định dạng');
+                });
+            }
+            if (form) {
+                form.addEventListener('submit', function(e){
+                    if (email) email.setCustomValidity('');
+                    if (!form.checkValidity()) { form.reportValidity(); e.preventDefault(); }
+                });
+            }
+        })();
+    </script>
 @endsection

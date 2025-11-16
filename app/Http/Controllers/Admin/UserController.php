@@ -23,18 +23,19 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|confirmed|min:6',
-            'role' => 'required|in:admin,staff,student',
+            'password' => 'required|min:6|confirmed',
+            // accept both new 'user' label and legacy 'student' for backward compatibility
+            'role' => 'required|in:admin,staff,user,student',
         ]);
 
         $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-            'role' => $data['role'],
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'role' => $validated['role'],
         ]);
 
         return redirect()->route('admin.users.index')->with('success','User created');
@@ -51,7 +52,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,'.$user->id,
             'password' => 'nullable|confirmed|min:6',
-            'role' => 'required|in:admin,staff,student',
+            'role' => 'required|in:admin,staff,user,student',
         ]);
 
         $user->name = $data['name'];

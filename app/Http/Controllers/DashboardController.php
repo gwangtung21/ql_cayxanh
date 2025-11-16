@@ -2,35 +2,42 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Tree;
-use App\Models\TreeCategory;
-use App\Models\Location;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
 
 class DashboardController extends Controller
 {
-    public function index(Request $request)
-    {
-        $user = Auth::user();
-        if (! $user) {
-            return redirect()->route('login');
-        }
+	public function index(Request $request)
+	{
+		$user = Auth::user();
+		if (!$user) {
+			return redirect()->route('login');
+		}
 
-        // Redirect to role-specific dashboard
-        if ($user->role === 'admin') {
-            return redirect()->route('admin.dashboard');
-        }
+		$role = strtolower((string)($user->role ?? ''));
 
-        if ($user->role === 'staff') {
-            return redirect()->route('staff.dashboard');
-        }
+		if ($role === 'admin' && Route::has('admin.dashboard')) {
+			return redirect()->route('admin.dashboard');
+		}
 
-        if ($user->role === 'student') {
-            return redirect()->route('student.dashboard');
-        }
+		if ($role === 'staff' && Route::has('staff.dashboard')) {
+			return redirect()->route('staff.dashboard');
+		}
 
-        // fallback
-        return redirect()->route('login');
-    }
+		// For 'user' role: return the view directly to avoid redirect loops
+		if ($role === 'user') {
+			Log::debug('DashboardController@index: serving user.dashboard view for user id '.$user->id);
+			return view('user.dashboard');
+		}
+
+		// If user.dashboard route exists but role wasn't 'user', try redirect as fallback
+		if (Route::has('user.dashboard')) {
+			return redirect()->route('user.dashboard');
+		}
+
+		// final safe fallback: show user view
+		return view('user.dashboard');
+	}
 }

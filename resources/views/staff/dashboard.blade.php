@@ -93,74 +93,79 @@
 
 <!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    (function(){
-        // Bar chart (Phân bố theo loài) - sử dụng dữ liệu từ controller nếu có
-        // Build bar chart data: prefer $categoryCounts from controller, else group $assignedTrees by category, else fallback
-        var categoryCounts = {!! json_encode($categoryCounts ?? null) !!};
-        var assignedGroup = {!! json_encode(isset($assignedTrees) ? $assignedTrees->groupBy('category')->map->count() : null) !!};
-        var labels = [], values = [];
-        if(categoryCounts && Object.keys(categoryCounts).length){
-            labels = Object.keys(categoryCounts);
-            values = Object.values(categoryCounts);
-        } else if(assignedGroup && Object.keys(assignedGroup).length){
-            labels = Object.keys(assignedGroup);
-            values = Object.values(assignedGroup);
-        } else {
-            labels = {!! json_encode($speciesLabels ?? ['Phượng vỹ','Bàng','Xà cừ','Sao đen','Hoa sữa','Bằng lăng','Dừa xiêm']) !!};
-            values = {!! json_encode($speciesCounts ?? [2,1,1,1,1,1,1]) !!};
-        }
-        var displayLabels = labels.map(function(l,i){ return l + ' (' + (values[i]||0) + ')'; });
-        var ctxBar = document.getElementById('barChart').getContext('2d');
-        var gradient = ctxBar.createLinearGradient(0, 0, 0, 300);
-        gradient.addColorStop(0, '#15b7c4');
-        gradient.addColorStop(1, '#05a7bd');
-        var suggestedMax = Math.max.apply(null, values.concat([1])) + 1;
-        new Chart(ctxBar, {
-            type: 'bar',
-            data: {
-                labels: displayLabels,
-                datasets: [{
-                    label: 'Số lượng',
-                    data: values,
-                    backgroundColor: gradient,
-                    borderRadius: 6,
-                    barThickness: 'flex',
-                    maxBarThickness: 48
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                layout: { padding: { top: 8, right: 12, left: 12, bottom: 8 } },
-                scales: {
-                    x: { grid: { display: false }, ticks: { color: '#6c757d', maxRotation: 45, minRotation: 45 } },
-                    y: { beginAtZero: true, suggestedMax: suggestedMax, ticks: { stepSize: 1, color: '#6c757d' }, grid: { color: '#e9ecef', borderDash: [4,4] } }
-                },
-                plugins: {
-                    legend: { display: true, position: 'top', align: 'end', labels: { boxWidth: 20 } },
-                    tooltip: { mode: 'index', intersect: false, callbacks: { label: function(ctx){ return ' ' + ctx.parsed.y + ' cây'; } } }
-                }
-            }
-        });
 
-        // Pie chart (Tình trạng sức khỏe) - use $healthDistribution if provided
-        var health = {!! json_encode($healthDistribution ?? null) !!};
-        var pieValues = [ (health && (health['fair'] || 0)) || 0, (health && (health['good'] || 0)) || 0, (health && (health['poor'] || 0)) || 0 ];
-        var ctxPie = document.getElementById('pieChart').getContext('2d');
-        new Chart(ctxPie, {
-            type: 'pie',
-            data: {
-                labels: ['Cần chú ý','Khỏe mạnh','Nguy cấp'],
-                datasets: [{
-                    data: pieValues,
-                    backgroundColor: ['#ffb020','#20c997','#ff6b6b'],
-                    borderWidth: 1,
-                    borderColor: '#ffffff'
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', align: 'center', labels: { boxWidth: 18 } }, tooltip: { callbacks: { label: function(ctx){ return ' ' + ctx.parsed + ' cây'; } } } } }
-        });
-    })();
+<?php
+	// build payload in PHP to avoid Blade/@json parsing issues in script
+	$__staff_payload = [
+		'categoryCounts' => $categoryCounts ?? null,
+		'assignedGroup'  => isset($assignedTrees) ? (function($cols){
+			try { return $cols->groupBy('category')->map(function($g){ return $g->count(); })->toArray(); } catch(\Throwable $e){ return null; }
+		})($assignedTrees) : null,
+		'speciesLabels'  => $speciesLabels ?? ['Phượng vỹ','Bàng','Xà cừ','Sao đen','Hoa sữa','Bằng lăng','Dừa xiêm'],
+		'speciesCounts'  => $speciesCounts ?? [2,1,1,1,1,1,1],
+		'healthDistribution' => $healthDistribution ?? null,
+	];
+	$__staff_json = json_encode($__staff_payload, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+?>
+<script type="application/json" id="staff-dashboard-data">{!! $__staff_json !!}</script>
+
+<script>
+	(function(){
+		// Read pre-rendered JSON (no Blade directives in runtime script)
+		var ds = document.getElementById('staff-dashboard-data');
+		var payload = {};
+		try {
+			payload = ds && ds.textContent ? JSON.parse(ds.textContent) : {};
+		} catch(e) {
+			console.warn('Invalid staff-dashboard JSON', e);
+			payload = {};
+		}
+
+		// Prepare category / bar chart data (prefer categoryCounts, then assignedGroup, else fallback)
+		var categoryCounts = payload.categoryCounts || null;
+		var assignedGroup = payload.assignedGroup || null;
+		var labels = [], values = [];
+		if (categoryCounts && Object.keys(categoryCounts).length) {
+			labels = Object.keys(categoryCounts);
+			values = Object.values(categoryCounts);
+		} else if (assignedGroup && Object.keys(assignedGroup).length) {
+			labels = Object.keys(assignedGroup);
+			values = Object.values(assignedGroup);
+		} else {
+			labels = payload.speciesLabels || [];
+			values = payload.speciesCounts || [];
+		}
+
+		var displayLabels = labels.map(function(l,i){ return l + ' (' + (values[i]||0) + ')'; });
+		var ctxBar = document.getElementById('barChart') && document.getElementById('barChart').getContext ? document.getElementById('barChart').getContext('2d') : null;
+		if (ctxBar) {
+			var gradient = ctxBar.createLinearGradient(0, 0, 0, 300);
+			gradient.addColorStop(0, '#15b7c4');
+			gradient.addColorStop(1, '#05a7bd');
+			var suggestedMax = Math.max.apply(null, values.concat([1])) + 1;
+			new Chart(ctxBar, {
+				type: 'bar',
+				data: { labels: displayLabels, datasets: [{ label: 'Số lượng', data: values, backgroundColor: gradient, borderRadius: 6, barThickness: 'flex', maxBarThickness: 48 }] },
+				options: {
+					responsive: true, maintainAspectRatio: false,
+					layout: { padding: { top: 8, right: 12, left: 12, bottom: 8 } },
+					scales: { x: { grid: { display: false }, ticks: { color: '#6c757d', maxRotation:45, minRotation:45 } }, y: { beginAtZero: true, suggestedMax: suggestedMax, ticks: { stepSize:1, color:'#6c757d' }, grid:{ color:'#e9ecef', borderDash:[4,4] } } },
+					plugins: { legend:{ display:true, position:'top', align:'end' }, tooltip:{ mode:'index', intersect:false, callbacks:{ label:function(ctx){ return ' ' + (ctx.parsed.y !== undefined ? ctx.parsed.y : ctx.parsed) + ' cây'; } } } }
+				}
+			});
+		}
+
+		// Pie chart for health distribution
+		var health = payload.healthDistribution || null;
+		var pieValues = [ (health && (health['fair'] || 0)) || 0, (health && (health['good'] || 0)) || 0, (health && (health['poor'] || 0)) || 0 ];
+		var ctxPie = document.getElementById('pieChart') && document.getElementById('pieChart').getContext ? document.getElementById('pieChart').getContext('2d') : null;
+		if (ctxPie) {
+			new Chart(ctxPie, {
+				type: 'pie',
+				data: { labels: ['Cần chú ý','Khỏe mạnh','Nguy cấp'], datasets: [{ data: pieValues, backgroundColor: ['#ffb020','#20c997','#ff6b6b'], borderWidth:1, borderColor:'#ffffff' }] },
+				options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', align:'center', labels:{ boxWidth:18 } }, tooltip:{ callbacks:{ label:function(ctx){ return ' ' + (ctx.parsed !== undefined ? ctx.parsed : ctx.raw) + ' cây'; } } } } }
+			});
+		}
+	})();
 </script>
 @endsection

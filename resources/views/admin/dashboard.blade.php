@@ -62,13 +62,40 @@
         </div>
     </div>
 
+    {{-- chèn dữ liệu JSON để tránh Blade directives bên trong JS --}}
+    <?php
+        // build dashboard JSON in PHP to avoid Blade directive parsing issues
+        $__dashboard_payload = [
+            'healthDistribution' => $healthDistribution ?? new \stdClass(),
+            'byCategory' => $byCategory ?? [],
+            'totalTrees' => $totalTrees ?? 0,
+            'healthyCount' => $healthyCount ?? 0,
+            'attentionCount' => $attentionCount ?? 0,
+            'urgentCount' => $urgentCount ?? 0,
+            'avgHeight' => $avgHeight ?? 0,
+            'avgDiameter' => $avgDiameter ?? 0,
+        ];
+        // use JSON_HEX_* to avoid embedding problematic sequences like </script>
+        $dashboardData = json_encode($__dashboard_payload, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+    ?>
+    <script type="application/json" id="admin-dashboard-data">{!! $dashboardData !!}</script>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function(){
-            // Health chart data
-            var rawDist = @json($healthDistribution ?? (object)[]);
+            // đọc dữ liệu đã render (không có Blade trong file JS này)
+            var pageData = {};
+            try {
+                var txt = document.getElementById('admin-dashboard-data').textContent || '{}';
+                pageData = JSON.parse(txt);
+            } catch(e) {
+                console.warn('Invalid admin-dashboard JSON', e);
+                pageData = {};
+            }
 
-            // Normalize and aggregate into 3 categories: Khỏe mạnh, Cần chú ý, Cần xử lý gấp
+            // Health chart data (bằng object hoặc mảng)
+            var rawDist = pageData.healthDistribution || {};
+
             function normalizeHealthKey(k) {
                 var s = (k || '').toString().toLowerCase();
                 if (s.indexOf('kh') !== -1 || s.indexOf('khoe') !== -1 || s.indexOf('good') !== -1 || s.indexOf('excellent') !== -1) return 'Khỏe mạnh';
@@ -79,7 +106,7 @@
 
             var aggregated = { 'Khỏe mạnh': 0, 'Cần chú ý': 0, 'Cần xử lý gấp': 0 };
             for (var k in rawDist) {
-                if (!rawDist.hasOwnProperty(k)) continue;
+                if (!Object.prototype.hasOwnProperty.call(rawDist, k)) continue;
                 var nk = normalizeHealthKey(k);
                 var v = Number(rawDist[k]) || 0;
                 aggregated[nk] = (aggregated[nk] || 0) + v;
@@ -88,7 +115,6 @@
             var healthLabels = Object.keys(aggregated);
             var healthData = healthLabels.map(function(l){ return aggregated[l]; });
 
-            // If totally empty, show placeholder
             var totalHealth = healthData.reduce(function(a,b){return a+b;}, 0);
             if (totalHealth === 0) {
                 healthLabels = ['Không có dữ liệu'];
@@ -96,7 +122,6 @@
             }
 
             var ctxH = document.getElementById('healthChart').getContext('2d');
-
             var colorMap = { 'Khỏe mạnh':'#16a34a', 'Cần chú ý':'#f59e0b', 'Cần xử lý gấp':'#ef4444', 'Không có dữ liệu':'#9ca3af' };
             var bgColors = healthLabels.map(function(l){ return colorMap[l] || '#60a5fa'; });
 
@@ -114,13 +139,16 @@
                 }
             });
 
-            // Category chart
-            var catLabels = @json(array_keys($byCategory ?? []));
-            var catData = @json(array_values($byCategory ?? []));
-            if (catLabels.length === 0) {
+            // Category chart - đọc từ pageData.byCategory (object hoặc mảng)
+            var byCategory = pageData.byCategory || {};
+            var catLabels = Array.isArray(byCategory) ? byCategory.map(function(_,i){ return i; }) : Object.keys(byCategory);
+            var catData = Array.isArray(byCategory) ? byCategory : Object.values(byCategory || {});
+
+            if (!catLabels.length) {
                 catLabels = ['Không có dữ liệu'];
                 catData = [0];
             }
+
             var ctxC = document.getElementById('categoryChart').getContext('2d');
             new Chart(ctxC, {
                 type: 'bar',

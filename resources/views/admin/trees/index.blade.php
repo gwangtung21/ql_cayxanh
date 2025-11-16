@@ -55,7 +55,7 @@
                     <div style="height:160px; background-image:url('{{ $tree->image_url }}'); background-size:cover; background-position:center; border-bottom:1px solid #eef2f5"></div>
 
                     <div class="card-body">
-                        <h5 class="mb-1" style="font-weight:600"><span style="color:#16a34a; margin-right:8px">🌳</span>{{ $tree->name }}</h5>
+                        <h5 class="mb-1" style="font-weight:600"><i class="bi bi-tree-fill tree-icon" aria-hidden="true"></i>{{ $tree->name }}</h5>
                         <div class="small text-muted mb-2">{{ $tree->category?->name }} • {{ $tree->location?->name }}</div>
 
                         <div class="d-flex align-items-center mb-3 text-muted">
@@ -168,6 +168,14 @@
         </div>
     </div>
 
+    {{-- chèn dữ liệu JSON để tránh Blade directives trong JS --}}
+    <script type="application/json" id="trees-index-data">
+    @json([
+        'byCategory' => $byCategory ?? [],
+        'treesCount' => $trees->count() ?? 0
+    ])
+    </script>
+
     <!-- Modal for create/edit tree (unchanged) -->
     <div class="modal fade" id="treeModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-lg">
@@ -208,6 +216,16 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function(){
+            // đọc dữ liệu từ thẻ JSON (không có Blade bên trong script)
+            var pageData = {};
+            try {
+                var txt = document.getElementById('trees-index-data').textContent || '{}';
+                pageData = JSON.parse(txt);
+            } catch(e) {
+                console.warn('Invalid trees-index JSON', e);
+                pageData = {};
+            }
+
             var treeModal = document.getElementById('treeModal');
             var treeForm = document.getElementById('treeForm');
             var treeFormMethod = document.getElementById('treeFormMethod');
@@ -337,6 +355,22 @@
 
             // initialize default view as grid
             document.getElementById('btnViewGrid').click();
+
+            // Category chart (sử dụng dữ liệu từ pageData)
+            var catObj = pageData.byCategory || {};
+            var catLabels = Array.isArray(catObj) ? catObj.map(function(_,i){return i;}) : Object.keys(catObj);
+            var catData = Array.isArray(catObj) ? catObj : Object.values(catObj || {});
+
+            if (catLabels.length === 0) {
+                catLabels = ['Không có dữ liệu'];
+                catData = [0];
+            }
+            var ctxC = document.getElementById('categoryChart').getContext('2d');
+            new Chart(ctxC, {
+                type: 'bar',
+                data: { labels: catLabels, datasets: [{ label: 'Số lượng', data: catData, backgroundColor: '#06b6d4' }] },
+                options: { responsive:true, maintainAspectRatio:false, aspectRatio: 2, scales: { y: { beginAtZero: true, precision:0 } } }
+            });
         });
     </script>
 @endsection
