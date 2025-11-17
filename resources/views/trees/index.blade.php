@@ -1,2 +1,2 @@
-{{-- GIT_NOTE: compatibility shim for view('trees.index') — safe to remove after migration --}}
+{{-- Include the existing user view so routes/controllers referencing 'trees.index' work --}}
 @include('user.trees_index')

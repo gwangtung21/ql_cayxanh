@@ -156,5 +156,4 @@
     }
 })();
 </script>
-{{-- GIT_NOTE: verify .env and sensitive files excluded from git before pushing --}}
 @endsection
