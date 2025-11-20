@@ -27,7 +27,7 @@
             <select name="role" class="form-select">
                 <option value="admin" {{ $user->role=='admin' ? 'selected' : '' }}>Admin</option>
                 <option value="staff" {{ $user->role=='staff' ? 'selected' : '' }}>Staff</option>
-                <option value="user" {{ $user->role=='user' ? 'selected' : '' }}>User</option>
+                <option value="guest" {{ in_array($user->role, ['guest','user']) ? 'selected' : '' }}>Guest</option>
             </select>
         </div>
         <button class="btn btn-primary">Lưu thay đổi</button>

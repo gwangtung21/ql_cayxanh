@@ -82,7 +82,7 @@
                 <option value="">Tất cả vai trò</option>
                 <option value="admin">Admin</option>
                 <option value="staff">Staff</option>
-                <option value="user">User</option>
+                <option value="guest">Guest</option>
             </select>
             <div class="ms-3 small text-muted" id="userFilterCount">Hiển thị {{ $users->total() ?? $users->count() ?? 0 }} / {{ $users->total() ?? $users->count() ?? 0 }} user</div>
         </div>

@@ -82,25 +82,35 @@
             <div class="d-flex align-items-center">
                 <div class="me-2" style="width:44px;height:44px;border-radius:8px;background:#e6f9f0;display:flex;align-items:center;justify-content:center;"><i class="bi bi-tree-fill text-success"></i></div>
                 <div>
-                    <div class="fw-bold">Hệ Thống Quản Lý Cây Xanh</div>                  
+                    <div class="fw-bold">Hệ Thống Quản Lý Cây Xanh HPC</div>                  
                 </div>
             </div>
         </div>
 
-        @php $user = Auth::user(); @endphp
+        @php
+            $user = Auth::user();
+            $rawName = isset($user) && trim($user->name) !== '' ? trim($user->name) : null;
+            // Nếu tên đúng "User" (legacy) thì hiển thị "Guest"
+            $displayName = ($rawName && strcasecmp($rawName, 'User') === 0) ? 'Guest' : $rawName;
+            $avatarInitial = $displayName ? strtoupper(substr($displayName,0,1)) : 'G';
+        @endphp
         <div class="p-3 bg-white border-bottom">
             <div class="d-flex align-items-center">
-                <div class="rounded-circle bg-light text-success d-flex align-items-center justify-content-center" style="width:48px;height:48px;font-weight:700">{{ isset($user) && $user->name ? strtoupper(substr(trim($user->name),0,1)) : 'U' }}</div>
+                {{-- fallback avatar ký tự 'G' khi không có user name --}}
+                <div class="rounded-circle bg-light text-success d-flex align-items-center justify-content-center" style="width:48px;height:48px;font-weight:700">{{ $avatarInitial }}</div>
                 <div class="ms-2">
-                    <div class="fw-semibold">{{ $user->name ?? 'Người dùng' }}</div>
-                    <div class="text-muted small">{{ $user->role ?? 'Nhân viên chăm sóc' }}</div>
+                    {{-- fallback tên 'Guest' --}}
+                    <div class="fw-semibold">{{ $displayName ?? 'Guest' }}</div>
+                    <div class="text-muted small">
+                        {{ isset($user) ? (in_array($user->role, ['guest','user']) ? 'Guest' : ucfirst($user->role)) : 'Nhân viên chăm sóc' }}
+                    </div>
                 </div>
             </div>
         </div>
 
         <nav class="p-3">
             <ul class="nav flex-column">
-                {{-- Tổng Quan: staff/admin/user --}}
+                {{-- Tổng Quan: staff/admin/guest --}}
                 @if(isset($user) && $user->role === 'staff')
                     @if(Route::has('staff.dashboard'))
                         <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('staff.dashboard') }}"><i class="bi bi-grid-1x2 me-2"></i> Trang Chủ</a></li>
@@ -109,10 +119,10 @@
                     @else
                         <li class="nav-item mb-2"><a id="navOverview" class="nav-link text-dark" href="javascript:void(0)"><i class="bi bi-grid-1x2 me-2"></i> Trang Chủ</a></li>
                     @endif
-                @elseif(isset($user) && $user->role === 'user')
-                    {{-- User: link tới user.dashboard nếu có, fallback sang generic dashboard --}}
-                    @if(Route::has('user.dashboard'))
-                        <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('user.dashboard') }}"><i class="bi bi-grid-1x2 me-2"></i> Trang Chủ</a></li>
+                @elseif(isset($user) && in_array($user->role, ['guest','user']))
+                    {{-- User: link tới guest.dashboard nếu có, fallback sang generic dashboard --}}
+                    @if(Route::has('guest.dashboard'))
+                        <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('guest.dashboard') }}"><i class="bi bi-grid-1x2 me-2"></i> Trang Chủ</a></li>
                     @elseif(Route::has('dashboard'))
                         <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('dashboard') }}"><i class="bi bi-grid-1x2 me-2"></i> Trang Chủ</a></li>
                     @else
@@ -140,15 +150,15 @@
                             <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('admin.trees.index') }}"><i class="bi bi-tree me-2"></i> Cây Xanh</a></li>
                         @endif
                         @if (Route::has('admin.users.index'))
-                            <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('admin.users.index') }}"><i class="bi bi-people me-2"></i> Quản Lý User</a></li>
+                            <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('admin.users.index') }}"><i class="bi bi-people me-2"></i> Quản Lý Guest</a></li>
                         @endif
                     @else
                         @if (Route::has('trees.index'))
-                            <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('trees.index') }}"><i class="bi bi-tree me-2"></i> Cây Xanh</a></li>
+                            <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ url('/trees') }}"><i class="bi bi-tree me-2"></i> Cây Xanh</a></li>
                         @elseif (Route::has('admin.trees.index'))
-                            <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ route('admin.trees.index') }}"><i class="bi bi-tree me-2"></i> Cây Xanh</a></li>
+                            <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ url('/trees') }}"><i class="bi bi-tree me-2"></i> Cây Xanh</a></li>
                         @else
-                            <li class="nav-item mb-2"><a class="nav-link text-dark" href="javascript:void(0)"><i class="bi bi-tree me-2"></i> Cây Xanh</a></li>
+                            <li class="nav-item mb-2"><a class="nav-link text-dark" href="{{ url('/trees') }}"><i class="bi bi-tree me-2"></i> Cây Xanh</a></li>
                         @endif
                     @endif
                     @if (Route::has('about'))
@@ -182,6 +192,8 @@
     </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<!-- Chart.js for dashboards -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
 <script>
     // Set avatar background colors from data-bg attributes
     document.addEventListener('DOMContentLoaded', function(){
@@ -190,6 +202,67 @@
             if (bg) el.style.background = bg;
         });
     });
+
+    // Auto-render charts for any canvas[data-chart] on page (Guest/Admin dashboard)
+    document.addEventListener('DOMContentLoaded', function () {
+        if (!window.Chart) return;
+        var els = document.querySelectorAll('canvas[data-chart]');
+        if (!els.length) return;
+
+        function palette(n){
+            return Array.from({length:n}, (_,i)=>`hsl(${(i*53)%360} 70% 55%)`);
+        }
+
+        els.forEach(function(cv){
+            // ensure height if not set (Chart.js v4 respects container size)
+            if (!cv.hasAttribute('height') && !cv.style.height) cv.style.height = '260px';
+
+            var type    = cv.dataset.chart || 'bar';
+            var labels  = [];
+            var values  = [];
+            try { labels = JSON.parse(cv.dataset.labels || '[]'); } catch(e){}
+            try { values = JSON.parse(cv.dataset.values || '[]'); } catch(e){}
+
+            var colors  = [];
+            try { colors = JSON.parse(cv.dataset.colors || '[]'); } catch(e){}
+            if (!colors.length) colors = palette(values.length || 6);
+
+            var dsLabel = cv.dataset.dsLabel || 'Dữ liệu';
+
+            var cfg = {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: dsLabel,
+                        data: values,
+                        backgroundColor: (type === 'line' || type === 'radar') ? colors[0] : colors,
+                        borderColor: colors,
+                        fill: type !== 'line' ? true : false,
+                        tension: 0.35,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: { intersect: false }
+                    },
+                    scales: (type === 'pie' || type === 'doughnut') ? {} : {
+                        y: { beginAtZero: true, ticks: { precision: 0 } },
+                        x: {}
+                    }
+                }
+            };
+            try {
+                new Chart(cv.getContext('2d'), cfg);
+            } catch (e) {
+                console.warn('Chart init error:', e);
+            }
+        });
+    });
 </script>
+@stack('scripts')
 </body>
 </html>

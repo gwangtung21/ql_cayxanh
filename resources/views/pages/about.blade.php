@@ -18,7 +18,6 @@
                     <ul class="mb-0">
                         <li>Danh sách & chi tiết cây xanh (hình ảnh, vị trí, tình trạng sức khỏe)</li>
                         <li>Phân loại theo loại cây và vị trí</li>
-                        <li>Phân công công việc cho nhân viên chăm sóc</li>
                         <li>Thống kê cơ bản trên trang chủ</li>
                     </ul>
                 </div>

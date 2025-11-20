@@ -50,9 +50,9 @@ class UserController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,'.$user->id,
+            'email' => 'required|email|max:255|unique:users,email,'.$user->id,
             'password' => 'nullable|confirmed|min:6',
-            'role' => 'required|in:admin,staff,user,student',
+            'role' => 'required|in:admin,staff,guest',
         ]);
 
         $user->name = $data['name'];

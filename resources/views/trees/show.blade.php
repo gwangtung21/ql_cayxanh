@@ -1,1 +1,1 @@
-@includeIf('user.trees_show')
+@includeIf('guest.trees_show')

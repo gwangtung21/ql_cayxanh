@@ -10,7 +10,7 @@
             <h5 class="mb-0">Danh sách cây</h5>
             <form id="tree-search-form" method="GET" class="d-flex" action="{{ route('trees.index') }}">
                 <input id="q-input" name="q" value="{{ request('q') }}" class="form-control form-control-sm me-2" placeholder="Tìm kiếm theo tên, loại, địa điểm" />
-                {{-- compatibility hidden fields: some controllers may expect other param names --}}
+                {{-- compatibility hidden fields --}}
                 <input type="hidden" id="search-input" name="search" value="{{ request('q') }}" />
                 <input type="hidden" id="keyword-input" name="keyword" value="{{ request('q') }}" />
                 <input type="hidden" id="s-input" name="s" value="{{ request('q') }}" />
@@ -63,13 +63,6 @@
             <div id="client-no-results" class="p-4 text-center text-muted d-none">
                 Không tìm thấy cây nào khớp.
             </div>
-
-            <div id="trees-pagination" class="mt-3">
-                @if(method_exists($trees, 'links'))
-                    {{-- preserve query params when paginating --}}
-                    {{ $trees->appends(request()->except('page'))->links() }}
-                @endif
-            </div>
         @else
             <div class="p-4 text-center text-muted">
                 Không có cây nào để hiển thị.
@@ -87,7 +80,6 @@
     var form = document.getElementById('tree-search-form');
     var cards = Array.prototype.slice.call(document.querySelectorAll('.tree-card-item'));
     var noRes = document.getElementById('client-no-results');
-    var pagination = document.getElementById('trees-pagination');
 
     function syncHidden(v){
         if(searchInput) searchInput.value = v;
@@ -119,9 +111,8 @@
                 }
             });
         }
-        // show/hide no-results and pagination
+        // show/hide no-results
         if(noRes) noRes.classList.toggle('d-none', visibleCount > 0);
-        if(pagination) pagination.style.display = (q === '' || visibleCount > 0) ? '' : 'none';
         return visibleCount;
     }
 

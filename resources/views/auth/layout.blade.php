@@ -20,9 +20,9 @@
                 <div class="col-md-6">
                     <div class="p-4 brand-card h-100">
                         <h1 class="h4 mb-2">Quản lý cây xanh</h1>
-                        <p class="text-muted">Hệ thống quản lý cây xanh trường học — quản lý cây, phân loại và vị trí. Đăng nhập để tiếp tục.</p>
+                        <p class="text-muted">Hệ thống quản lý cây xanh trường HPC — quản lý cây, phân loại và vị trí, tình trạng cây. Đăng nhập để tiếp tục.</p>
                         <hr>
-                        <p class="small text-muted">Nếu gặp khó khăn, liên hệ admin.</p>
+                        <p class="small text-muted">Nếu gặp khó khăn, liên hệ admin: tungfck0987@gmail.com</p>
                     </div>
                 </div>
                 <div class="col-md-6">

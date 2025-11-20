@@ -30,7 +30,14 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->midd
 Route::middleware('auth')->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
 // Public routes (list & show) used by layout or guest users
-Route::get('/trees', [TreeController::class, 'index'])->name('trees.index');
+Route::get('/trees', function () {
+    try {
+        $trees = \App\Models\Tree::with(['category','location'])->get();
+    } catch (\Throwable $e) {
+        $trees = collect();
+    }
+    return view('trees.index', compact('trees'));
+})->name('trees.index');
 // constrain {tree} to numeric ids so URIs like /trees/create won't be captured by this route
 Route::get('/trees/{tree}', [TreeController::class, 'show'])->whereNumber('tree')->name('trees.show');
 Route::get('/locations', [LocationController::class, 'index'])->name('locations.index');
@@ -99,16 +106,25 @@ Route::middleware(['web','auth'])->group(function(){
 Route::middleware(['web','auth'])->group(function () {
     if (!Route::has('user.dashboard')) {
         Route::get('user/dashboard', function () {
-            return view('user.dashboard');
+            return Route::has('guest.dashboard')
+                ? redirect()->route('guest.dashboard')
+                : view('guest.dashboard');
         })->name('user.dashboard');
     }
 
     if (!Route::has('student.dashboard')) {
         Route::get('student/dashboard', function () {
-            return redirect()->route('user.dashboard');
+            return Route::has('guest.dashboard')
+                ? redirect()->route('guest.dashboard')
+                : view('guest.dashboard');
         })->name('student.dashboard');
     }
 });
+
+// Ensure guest.dashboard exists (if not already defined)
+Route::middleware('auth')->get('/guest/dashboard', function () {
+    return view('guest.dashboard');
+})->name('guest.dashboard');
 
 // Fallback for undefined routes
 Route::fallback(function () {

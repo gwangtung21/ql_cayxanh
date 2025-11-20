@@ -42,7 +42,7 @@
 		            <select name="role" class="form-select">
 		                <option value="admin">Admin</option>
 		                <option value="staff">Staff</option>
-		                <option value="user" selected>User</option>
+		                <option value="guest" selected>Guest</option>
 		            </select>
 		        </div>
 		        <div class="col-12">
